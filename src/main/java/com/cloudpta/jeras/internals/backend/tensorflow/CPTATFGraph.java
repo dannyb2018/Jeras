@@ -18,17 +18,25 @@
        Copyright 2016 The TensorFlow Authors. All Rights Reserved
  */
 package com.cloudpta.jeras.internals.backend.tensorflow;
-
+import com.cloudpta.jeras.internals.backend.raw.tensorflow.SWIGTYPE_p_TF_Graph;
+import com.cloudpta.jeras.internals.backend.raw.tensorflow.tensorflow;
 /**
  *
  * @author dannyb2018
  */
 public class CPTATFGraph implements AutoCloseable
 {
+    public CPTATFGraph()
+    {
+        tensorflow.TF_NewGraph();
+    }
+    
     @Override
     public void close() throws Exception
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        tensorflow.TF_DeleteGraph(graph);
     }
+    
+    SWIGTYPE_p_TF_Graph graph;
     
 }
