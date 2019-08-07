@@ -14,17 +14,34 @@
        limitations under the License.
  */
 package com.cloudpta.jeras.internals.backend.tensorflow;
-
+import com.cloudpta.jeras.internals.backend.raw.tensorflow.SWIGTYPE_p_TF_Session;
+import com.cloudpta.jeras.internals.backend.raw.tensorflow.tensorflow;
 /**
  *
  * @author dannyb2018
  */
 public class CPTATFSession implements AutoCloseable
 {
+    public CPTATFSession(CPTATFGraph sessionGraph, CPTATFSessionOptions sessionOptions)
+    {
+        graph = sessionGraph;
+        options = sessionOptions;
+        CPTATFStatus newSessionCreateStatus = new CPTATFStatus();
+        
+        session = tensorflow.TF_NewSession(graph.graph, options.options, newSessionCreateStatus.status);
+    }
+    
     @Override
     public void close() throws Exception
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // Close the session
+        CPTATFStatus sessionStatus = new CPTATFStatus();
+        tensorflow.TF_CloseSession(session, sessionStatus.status);
+        // Delete the session
+        tensorflow.TF_DeleteSession(session, sessionStatus.status);
     }
     
+    SWIGTYPE_p_TF_Session session;
+    CPTATFGraph graph;
+    CPTATFSessionOptions options;
 }
