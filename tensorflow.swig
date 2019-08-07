@@ -4,6 +4,9 @@
 %}
 %include "cdata.i"
 
+%apply int { size_t };
+%apply long{ int64_t  };
+
 const char* TF_Version();
 enum TF_DataType {
   TF_FLOAT = 1,
@@ -51,11 +54,13 @@ enum TF_Code {
   TF_DATA_LOSS = 15,
 };
 
+/* Buffer Management */
 struct TF_Buffer {
   void* data;
   size_t length;
   void (*data_deallocator)(void* data, size_t length);
 } ;
+
 
 TF_Buffer* TF_NewBufferFromString(const char* proto, size_t proto_len);
 
@@ -70,4 +75,35 @@ size_t TF_StringEncode(const char* src, size_t src_len, char* dst, size_t dst_le
 size_t TF_StringDecode(const char* src, size_t src_len, const char** dst, size_t* dst_len, TF_Status* status);
 size_t TF_StringEncodedSize(size_t len);
 
+/* Tensors */
+
+%feature("director") TF_Tensor;
+
+
+TF_Tensor* TF_NewTensor(
+    TF_DataType, const int64_t* dims, int num_dims, void* data, size_t len,
+    void (*deallocator)(void* data, size_t len, void* arg),
+    void* deallocator_arg);
+TF_Tensor* TF_AllocateTensor(TF_DataType,
+                                                   const int64_t* dims,
+                                                   int num_dims, size_t len);
+void TF_DeleteTensor(TF_Tensor* tensor);
+TF_Tensor* TF_TensorMaybeMove(TF_Tensor* tensor);
+
+size_t TF_TensorByteSize(const TF_Tensor*);
+void* TF_TensorData(const TF_Tensor* tensor);
+
+TF_DataType TF_TensorType(const TF_Tensor* tensor);
+int TF_NumDims(const TF_Tensor* tensor);
+int64_t TF_Dim(const TF_Tensor* tensor, int dim_index);
+int64_t TF_TensorElementCount(const TF_Tensor* tensor);
+
+/* Graph */
+%feature("director") TF_Graph;
+
+TF_Graph* TF_NewGraph(void);
+void TF_DeleteGraph(TF_Graph*);
+
+
+/* ops */
 TF_Buffer* TF_GetAllOpList();
