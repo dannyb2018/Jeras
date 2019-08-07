@@ -34,6 +34,8 @@ enum TF_DataType {
   TF_UINT32 = 22,
   TF_UINT64 = 23,
 } ;
+
+/*Status*/
 enum TF_Code {
   TF_OK = 0,
   TF_CANCELLED = 1,
@@ -53,6 +55,22 @@ enum TF_Code {
   TF_UNAVAILABLE = 14,
   TF_DATA_LOSS = 15,
 };
+
+%feature("director") TF_Status;
+TF_Status* TF_NewStatus(void);
+void TF_DeleteStatus(TF_Status*);
+
+// Record <code, msg> in *s.  Any previous information is lost.
+// A common use is to clear a status: TF_SetStatus(s, TF_OK, "");
+void TF_SetStatus(TF_Status* s, TF_Code code, const char* msg);
+// Return the code record in *s.
+TF_Code TF_GetCode(const TF_Status* s);
+
+// Return a pointer to the (null-terminated) error message in *s.  The
+// return value points to memory that is only usable until the next
+// mutation to *s.  Always returns an empty string if TF_GetCode(s) is
+// TF_OK.
+const char* TF_Message(const TF_Status* s);
 
 /* Buffer Management */
 struct TF_Buffer {
@@ -80,13 +98,9 @@ size_t TF_StringEncodedSize(size_t len);
 %feature("director") TF_Tensor;
 
 
-TF_Tensor* TF_NewTensor(
-    TF_DataType, const int64_t* dims, int num_dims, void* data, size_t len,
-    void (*deallocator)(void* data, size_t len, void* arg),
-    void* deallocator_arg);
-TF_Tensor* TF_AllocateTensor(TF_DataType,
-                                                   const int64_t* dims,
-                                                   int num_dims, size_t len);
+TF_Tensor* TF_NewTensor(TF_DataType, const int64_t* dims, int num_dims, void* data, size_t len, void (*deallocator)(void* data, size_t len, void* arg), void* deallocator_arg);
+TF_Tensor* TF_AllocateTensor(TF_DataType,const int64_t* dims,
+ int num_dims, size_t len);
 void TF_DeleteTensor(TF_Tensor* tensor);
 TF_Tensor* TF_TensorMaybeMove(TF_Tensor* tensor);
 
@@ -107,3 +121,36 @@ void TF_DeleteGraph(TF_Graph*);
 
 /* ops */
 TF_Buffer* TF_GetAllOpList();
+
+/* sesson */
+%feature("director") TF_SessionOptions;
+TF_SessionOptions* TF_NewSessionOptions(void);
+void TF_DeleteSessionOptions(TF_SessionOptions*);
+void TF_SetTarget(TF_SessionOptions* options, const char* target);
+// BUGBUGDB this is left here but no idea how it will work
+// Set the config in TF_SessionOptions.options.
+// config should be a serialized tensorflow.ConfigProto proto.
+// If config was not parsed successfully as a ConfigProto, record the
+// error information in *status.
+void TF_SetConfig(TF_SessionOptions* options, const void* proto, size_t proto_len, TF_Status* status);
+
+%feature("director") TF_Session;
+// Return a new execution session with the associated graph, or NULL on
+// error. Does not take ownership of any input parameters.
+//
+// *`graph` must be a valid graph (not deleted or nullptr). `graph` will be be
+// kept alive for the lifetime of the returned TF_Session. New nodes can still
+// be added to `graph` after this call.
+TF_Session* TF_NewSession(TF_Graph* graph, const TF_SessionOptions* opts, TF_Status* status);
+// Close a session.
+//
+// Contacts any other processes associated with the session, if applicable.
+// May not be called after TF_DeleteSession().
+void TF_CloseSession(TF_Session*, TF_Status* status);
+// Destroy a session object.
+//
+// Even if error information is recorded in *status, this call discards all
+// local resources associated with the session.  The session may not be used
+// during or after this call (and the session drops its reference to the
+// corresponding graph).
+void TF_DeleteSession(TF_Session*, TF_Status* status);
